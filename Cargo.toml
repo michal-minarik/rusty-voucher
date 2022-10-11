@@ -1,0 +1,17 @@
+[package]
+name = "rusty-voucher"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_qs = "0.10"
+rand = "0.8.5"
+chrono = "0.4.22"
+
+[[bin]]
+name = "rusty-voucher"
+path = "main.rs"
