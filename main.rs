@@ -11,7 +11,7 @@ struct Product {
       object: String,
       active: bool,
       created: i32, 
-      default_price: String, 
+      default_price: Option<String>, 
       description: Option<String>,
       images: Vec<String>,
       livemode: bool,
