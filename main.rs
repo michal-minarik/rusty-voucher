@@ -1,29 +1,32 @@
-use std::collections::HashMap;
-use reqwest::{self, header::{AUTHORIZATION, ACCEPT, CONTENT_TYPE}};
+use chrono::{offset::TimeZone, DateTime, Local, NaiveDateTime};
+use reqwest::{
+    self,
+    header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
+};
 use serde::{Deserialize, Serialize};
-use chrono::{offset::TimeZone, NaiveDateTime, DateTime, Local};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Product {
-      id: String,
-      object: String,
-      active: bool,
-      created: i32, 
-      default_price: Option<String>, 
-      description: Option<String>,
-      images: Vec<String>,
-      livemode: bool,
-      metadata: HashMap<String, String>, 
-      name: String, 
-      package_dimensions: Option<String>,
-      shippable: Option<String>,
-      statement_descriptor: Option<String>, 
-      tax_code: Option<String>, 
-      unit_label: Option<String>, 
-      updated: i32, 
-      url: Option<String>, 
+    id: String,
+    object: String,
+    active: bool,
+    created: i32,
+    default_price: Option<String>,
+    description: Option<String>,
+    images: Vec<String>,
+    livemode: bool,
+    metadata: HashMap<String, String>,
+    name: String,
+    package_dimensions: Option<String>,
+    shippable: Option<String>,
+    statement_descriptor: Option<String>,
+    tax_code: Option<String>,
+    unit_label: Option<String>,
+    updated: i32,
+    url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -36,21 +39,21 @@ struct ProductsResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Coupon {
-  id: String,
-  object: String,
-  amount_off: Option<i32>,
-  created: i32,
-  currency: Option<String>,
-  duration: String,
-  duration_in_months: Option<i32>,
-  livemode: bool,
-  max_redemptions: Option<i32>,
-  metadata: HashMap<String, String>,
-  name: Option<String>,
-  percent_off: f32,
-  redeem_by: Option<i32>,
-  times_redeemed: i32,
-  valid: bool, 
+    id: String,
+    object: String,
+    amount_off: Option<i32>,
+    created: i32,
+    currency: Option<String>,
+    duration: String,
+    duration_in_months: Option<i32>,
+    livemode: bool,
+    max_redemptions: Option<i32>,
+    metadata: HashMap<String, String>,
+    name: Option<String>,
+    percent_off: f32,
+    redeem_by: Option<i32>,
+    times_redeemed: i32,
+    valid: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -66,7 +69,6 @@ struct CouponAppliesTo {
     products: Vec<String>,
 }
 
-
 #[derive(Serialize, Deserialize, Debug)]
 struct PromotionCodeRequest {
     coupon: String,
@@ -78,7 +80,7 @@ struct PromotionCodeRequest {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct PromotionCodeRestrictions {
-    first_time_transaction: bool
+    first_time_transaction: bool,
 }
 
 fn generate_random_code() -> String {
@@ -100,6 +102,8 @@ fn generate_random_code() -> String {
 async fn main() {
     println!("[ Rusty Voucher ]");
 
+    let first_time_transaction = false;
+
     let mut stripe_key = String::new();
     println!("Enter your Stripe key:");
     std::io::stdin().read_line(&mut stripe_key).unwrap();
@@ -114,25 +118,30 @@ async fn main() {
     let mut expiration_string = String::new();
     println!("Expiration date (YYYY-MM-DD):");
     std::io::stdin().read_line(&mut expiration_string).unwrap();
-    let parse_result = NaiveDateTime::parse_from_str(&format!("{} 23:59:59", &expiration_string.trim()), "%Y-%m-%d %H:%M:%S");
+    let parse_result = NaiveDateTime::parse_from_str(
+        &format!("{} 23:59:59", &expiration_string.trim()),
+        "%Y-%m-%d %H:%M:%S",
+    );
     let expiration_date: DateTime<Local> = match parse_result {
         Ok(date) => Local.from_local_datetime(&date).unwrap(),
         Err(_) => {
             println!("Cannot parse date. Aborting.");
             return;
-        }   
+        }
     };
-    
+
     let mut requested_code_count_string = String::new();
     println!("How many codes do you need:");
-    std::io::stdin().read_line(&mut requested_code_count_string).unwrap();
+    std::io::stdin()
+        .read_line(&mut requested_code_count_string)
+        .unwrap();
     let parsed_requested_code_count = requested_code_count_string.trim().parse::<i32>();
     let requested_code_count = match parsed_requested_code_count {
-        Ok(result) => result, 
+        Ok(result) => result,
         Err(_) => {
             println!("Cannot parse number of vouchers. Aborting.");
             return;
-        }   
+        }
     };
 
     if requested_code_count <= 0 {
@@ -141,7 +150,8 @@ async fn main() {
     }
 
     let client = reqwest::Client::new();
-    let product_response = client.get("https://api.stripe.com/v1/products")
+    let product_response = client
+        .get("https://api.stripe.com/v1/products")
         .header(AUTHORIZATION, format!("Bearer {}", stripe_key))
         .header(ACCEPT, "application/json")
         .send()
@@ -158,9 +168,7 @@ async fn main() {
         return;
     }
 
-    let data: ProductsResponse = product_response.json()
-        .await
-        .unwrap();
+    let data: ProductsResponse = product_response.json().await.unwrap();
 
     println!("Select a product from list:");
 
@@ -179,14 +187,16 @@ async fn main() {
     }
 
     let mut requested_product_id_string = String::new();
-    std::io::stdin().read_line(&mut requested_product_id_string).unwrap();
+    std::io::stdin()
+        .read_line(&mut requested_product_id_string)
+        .unwrap();
     let parsed_requested_product_id = requested_product_id_string.trim().parse::<usize>();
     let requested_product_id = match parsed_requested_product_id {
-        Ok(result) => result, 
+        Ok(result) => result,
         Err(_) => {
             println!("Cannot parse selected ID of product. Aborting.");
             return;
-        }   
+        }
     };
 
     if requested_product_id > products.len() {
@@ -201,13 +211,14 @@ async fn main() {
         percent_off: 100.0,
         redeem_by: expiration_date.timestamp(),
         applies_to: CouponAppliesTo {
-            products: vec![products[requested_product_id].clone()]
-        }
+            products: vec![products[requested_product_id].clone()],
+        },
     };
 
     let coupon_request_body = serde_qs::to_string(&coupon_request).unwrap();
 
-    let coupon_response = client.post("https://api.stripe.com/v1/coupons")
+    let coupon_response = client
+        .post("https://api.stripe.com/v1/coupons")
         .header(AUTHORIZATION, format!("Bearer {}", stripe_key))
         .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
         .body(coupon_request_body)
@@ -224,16 +235,14 @@ async fn main() {
         println!("Coupon cannot be created");
         return;
     }
-    
+
     if coupon_response.status() != reqwest::StatusCode::OK {
         println!("Unexpected error");
         return;
     }
 
-    let coupon: Coupon = coupon_response.json()
-        .await
-        .unwrap();
-  
+    let coupon: Coupon = coupon_response.json().await.unwrap();
+
     println!("[ DONE ]");
 
     //
@@ -244,23 +253,23 @@ async fn main() {
     let mut file = File::create("vouchers.txt").unwrap();
 
     while created_code_count < requested_code_count {
-
         let mut restrictions = HashMap::new();
         restrictions.insert(String::from("first_time_transaction"), String::from("true"));
 
         let promotion_code_request = PromotionCodeRequest {
             coupon: coupon.id.clone(),
-            code: generate_random_code(), 
+            code: generate_random_code(),
             expires_at: expiration_date.timestamp(),
             max_redemptions: 1,
             restrictions: PromotionCodeRestrictions {
-                first_time_transaction: true,
-            }
+                first_time_transaction,
+            },
         };
 
         let promotion_code_request_body = serde_qs::to_string(&promotion_code_request).unwrap();
 
-        let promotion_code_response = client.post("https://api.stripe.com/v1/promotion_codes")
+        let promotion_code_response = client
+            .post("https://api.stripe.com/v1/promotion_codes")
             .header(AUTHORIZATION, format!("Bearer {}", stripe_key))
             .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
             .body(promotion_code_request_body)
@@ -276,15 +285,17 @@ async fn main() {
         if promotion_code_response.status() == reqwest::StatusCode::BAD_REQUEST {
             continue;
         }
-        
+
         if promotion_code_response.status() != reqwest::StatusCode::OK {
             println!("Unexpected error");
             break;
         }
 
         created_code_count += 1;
-        println!("Promotion code {} or {} [{}]", created_code_count, requested_code_count, promotion_code_request.code);
+        println!(
+            "Promotion code {} or {} [{}]",
+            created_code_count, requested_code_count, promotion_code_request.code
+        );
         writeln!(&mut file, "{}", promotion_code_request.code).unwrap();
     }
 }
-
